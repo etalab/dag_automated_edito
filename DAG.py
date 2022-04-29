@@ -36,7 +36,7 @@ def tweet_featured_from_catalog(url, phrase_intro):
 
     tweets = list(df['tweet'].unique())
 
-    intro = 'Ce mois-ci, ' + str(nb_items) + ' ' + phrase_intro + ' sur data.gouv.fr. \n Découvrez nos coups de coeur dans ce fil #opendata \n :arrow_heading_down: :arrow_heading_down: :arrow_heading_down:'
+    intro = 'Ce mois-ci, ' + str(nb_items) + ' ' + phrase_intro + ' sur data.gouv.fr. \n Découvrez nos coups de coeur dans ce fil #opendata \n 🔽🔽🔽🔽'
 
     #tweets = intro + tweets
     original_tweet = api.update_status(status=intro)
