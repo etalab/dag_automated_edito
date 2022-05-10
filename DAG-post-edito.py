@@ -60,14 +60,14 @@ def create_edito_post():
     def list_datasets(datasets):
         out = '<div class="fr-my-2w">\n'
         for slug in datasets:
-            out += f'        <div data-udata-dataset="{slug}"></div>\n'
+            out += f'        <div class="udata-oembed--border-bottom" data-udata-dataset="{slug}"></div>\n'
         out += '    </div>\n'
         return out
 
     def list_reuses(reuses):
         out = '<div class="fr-my-2w fr-grid-row fr-grid-row--gutters">\n'
         for slug in reuses:
-            out += f'        <div data-udata-reuse="{slug}"></div>\n'
+            out += f'        <div class="udata-oembed--border-bottom" data-udata-reuse="{slug}"></div>\n'
         out += '    </div>\n'
         return out
 
