@@ -13,9 +13,9 @@ from airflow.utils.dates import days_ago
 from airflow.operators.python import PythonOperator
 
 # Variables
-DATAGOUV_URL = Variable.get("DATAGOUV_URL")
-DATAGOUV_API_KEY = Variable.get('DATAGOUV_API_KEY')
-CREATE_POST_BY_API = Variable.get('CREATE_POST_BY_API', False)
+DATAGOUV_URL = Variable.get("datagouv_url_test")
+DATAGOUV_API_KEY = Variable.get('datagouv_api_key_secret')
+CREATE_POST_BY_API = Variable.get('create_post_by_api', False)
 
 
 # Previous month formats
