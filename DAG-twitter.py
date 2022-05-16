@@ -1,6 +1,7 @@
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
+from io import StringIO
 import requests
 import tweepy
 
@@ -9,16 +10,29 @@ from airflow.utils.dates import days_ago
 from airflow.operators.python import PythonOperator
 from datetime import timedelta
 
-DAG_NAME = 'tweet_dag'
+DAG_NAME = 'automated_edito_post_and_tweet'
 NOW = datetime.now()
-BEGINNING_DATE = NOW + relativedelta(months=-1)
-BEGINNING_DATE_STR = BEGINNING_DATE.strftime("%Y-%m-%d")
+
+NOW = date.today()
+LAST_MONTH_DATE = NOW + relativedelta(months=-1)
+LAST_MONTH_DATE_FMT = LAST_MONTH_DATE.strftime("%Y-%m")
+MONTHS = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet',
+          'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+LAST_MONTH_DATE_STR_SHORT = f'{MONTHS[LAST_MONTH_DATE.month - 1]}'
+LAST_MONTH_DATE_STR = f'{MONTHS[LAST_MONTH_DATE.month - 1]} {LAST_MONTH_DATE.strftime("%Y")}'
+
+
+DATAGOUV_URL = Variable.get("dev_datagouv_url")
+DATAGOUV_API_KEY = Variable.get('dev_datagouv_api_key_secret')
+CREATE_POST_BY_API = Variable.get('create_post_by_api', False)
 
 
 CONSUMER_KEY = Variable.get('twitter_consumer_key')
 CONSUMER_KEY_SECRET = Variable.get('twitter_consumer_key_secret')
 ACCESS_TOKEN = Variable.get('twitter_access_token')
 ACCESS_SECRET_TOKEN = Variable.get('twitter_secret_token_secret')
+
+MATTERMOST_EDITO_URL = Variable.get('secret_mattermost_datagouv_edito')
 
 
 def tweet_featured_from_catalog(url, obj_type, phrase_intro):
@@ -29,17 +43,18 @@ def tweet_featured_from_catalog(url, obj_type, phrase_intro):
     api = tweepy.API(authenticator, wait_on_rate_limit=True)
 
     df = pd.read_csv(url, sep=";")
-    nb_items = df[(df['created_at'] > BEGINNING_DATE_STR)].shape[0]
-    df = df[(df['created_at'] > BEGINNING_DATE_STR) & (df['featured'] == True)]
+    nb_items = df[(df['created_at'].str.match(LAST_MONTH_DATE_FMT))].shape[0]
+    df = df[(df['created_at'].str.match(LAST_MONTH_DATE_FMT)) & (df['featured'] == True)]
     df['title_bis'] = df['title'].apply(lambda x: x[:215] + '[...]' if len(x) > 215 else x)
     df['tweet'] = df['title_bis'] + ' https://data.gouv.fr/fr/' + obj_type + '/' + df['id']
 
     tweets = list(df['tweet'].unique())
 
-    intro = 'Ce mois-ci, ' + str(nb_items) + ' ' + phrase_intro + ' sur data.gouv.fr. \n Découvrez nos coups de coeur dans ce fil #opendata \n 🔽🔽🔽🔽'
+    intro = 'En ' + LAST_MONTH_DATE_STR_SHORT + ', ' + str(nb_items) + ' ' + phrase_intro + ' sur data.gouv.fr. \n Découvrez nos coups de coeur dans ce fil #opendata \n 🔽🔽🔽🔽'
 
     #tweets = intro + tweets
     original_tweet = api.update_status(status=intro)
+    
     reply_tweet = original_tweet
 
     for tweet in tweets:
@@ -47,11 +62,132 @@ def tweet_featured_from_catalog(url, obj_type, phrase_intro):
                                  in_reply_to_status_id=reply_tweet.id, 
                                  auto_populate_reply_metadata=True)
 
+    return ':mega: :bird: @agarrone @thanh-ha.le - Thread sur les ' + obj_type + ' du mois dernier publié [ici](https://twitter.com/DatagouvBot/status/' + str(original_tweet.id) + ')'
 
-def process_tweeting():
 
-    tweet_featured_from_catalog('https://www.data.gouv.fr/fr/datasets/r/f868cca6-8da1-4369-a78d-47463f19a9a3', 'datasets', 'jeux de données ont été publiés')
-    tweet_featured_from_catalog('https://www.data.gouv.fr/fr/datasets/r/970aafa0-3778-4d8b-b9d1-de937525e379', 'reuses', 'réutilisations ont été publiées')
+def process_tweeting(**kwargs):
+
+    dataset_thread = tweet_featured_from_catalog('https://www.data.gouv.fr/fr/datasets/r/f868cca6-8da1-4369-a78d-47463f19a9a3', 'datasets', 'jeux de données ont été publiés')
+    reuse_thread = tweet_featured_from_catalog('https://www.data.gouv.fr/fr/datasets/r/970aafa0-3778-4d8b-b9d1-de937525e379', 'reuses', 'réutilisations ont été publiées')
+
+    kwargs["ti"].xcom_push(key='published_threads', value=[dataset_thread, reuse_thread]) 
+
+
+    
+def create_edito_post(**kwargs):
+
+    # Get datasets and reuses from catalog
+    def load_catalog(url):
+        r = requests.get(url)
+        return pd.read_csv(StringIO(r.text), delimiter=';')
+
+    df_dataset = load_catalog('https://www.data.gouv.fr/fr/datasets/r/f868cca6-8da1-4369-a78d-47463f19a9a3')
+    df_reuse = load_catalog('https://www.data.gouv.fr/fr/datasets/r/970aafa0-3778-4d8b-b9d1-de937525e379')
+
+    # Get featured
+    featured_datasets_slug = df_dataset[df_dataset.created_at.str.match(LAST_MONTH_DATE_FMT)&df_dataset.featured].slug.values
+    featured_reuses_slug = df_reuse[df_reuse.created_at.str.match(LAST_MONTH_DATE_FMT)&df_reuse.featured].slug.values
+
+    # Get new counts
+    new_datasets_count = df_dataset[df_dataset.created_at.str.match(LAST_MONTH_DATE_FMT)].shape[0]
+    new_reuses_count = df_reuse[df_reuse.created_at.str.match(LAST_MONTH_DATE_FMT)].shape[0]
+
+    # Get trending datasets and reuses
+    def load_trending(url):
+        return requests.get(url).json()
+
+    trending_datasets_url = 'https://object.files.data.gouv.fr/opendata/datagouv/dashboard/tops-trending-datasets-weekly.json'
+    trending_reuses_url = 'https://object.files.data.gouv.fr/opendata/datagouv/dashboard/tops-trending-reuses-weekly.json'
+
+    trending_datasets_slug = [res['url'].split('/')[-2] for res in load_trending(trending_datasets_url)['values'][:6]]
+    trending_reuses_slug = [res['url'].split('/')[-2] for res in load_trending(trending_reuses_url)['values'][:6]]
+
+    # Generate HTML
+    def list_datasets(datasets):
+        out = '<div class="fr-my-2w">\n'
+        for slug in datasets:
+            out += f'        <div class="udata-oembed--border-bottom" data-udata-dataset="{slug}"></div>\n'
+        out += '    </div>\n'
+        return out
+
+    def list_reuses(reuses):
+        out = '<div class="fr-my-2w fr-grid-row fr-grid-row--gutters">\n'
+        for slug in reuses:
+            out += f'        <div class="udata-oembed--border-bottom" data-udata-reuse="{slug}"></div>\n'
+        out += '    </div>\n'
+        return out
+
+    content = f"""
+    <script data-udata="https://www.data.gouv.fr/" src="https://static.data.gouv.fr/static/oembed.js" async defer></script>
+
+    <p>En {LAST_MONTH_DATE_STR}, {new_datasets_count} jeux de données et {new_reuses_count} réutilisations ont été publiés sur data.gouv.fr.</p>
+    <a href="http://activites-datagouv.app.etalab.studio/"  target="_blank">Découvrez plus de statistiques sur la plateforme</a>.
+
+    <div class="fr-my-6w">
+        <h3 >Les jeux de données du mois</h3>
+        <p>Les jeux de données qui ont retenus notre attention ce mois-ci :</p>
+        {list_datasets(featured_datasets_slug)}
+    </div>
+
+    <div class="fr-my-6w">
+        <h3>Les réutilisations du mois</h3>
+        <p>Les réutilisations qui ont retenus notre attention ce mois-ci :</p>
+        {list_reuses(featured_reuses_slug)}
+    </div>
+
+    <div class="fr-my-6w">
+        <h3>Les tendances du mois sur data.gouv.fr</h3>
+        <p>Les jeux de données publiés ce mois-ci les plus populaires :</p>
+        {list_datasets(trending_datasets_slug)}
+        <p>Les réutilisations publiées ce mois-ci les plus populaires :</p>
+        {list_reuses(trending_reuses_slug)}
+    </div>
+
+
+    <h3>Suivez l’actualité de la plateforme</h3>
+    <p>Le suivi des sorties n’est que le sommet de l’iceberg de l’activité de data.gouv.fr.
+    Pour ne rien manquer, de l’actualité de data.gouv.fr et de l’open data, 
+    <a href="https://infolettres.etalab.gouv.fr/subscribe/rn7y93le1"  target="_blank">inscrivez-vous à notre infolettre</a>. 
+    pour experimenter les nouveauté de la plateforme en avant première et nous aider à l’améliorer n’hésitez pas à
+    <a href="https://app.evalandgo.com/s/index.php?id=JTk5biU5OWolOUQlQUI%3D&a=JTk3cCU5M2glOTklQUU%3D"  target="_blank">devenir beta testeur</a>.</p>
+    """
+
+    print(content)
+
+    # Create a POST
+    if CREATE_POST_BY_API:
+        headline = f"Vous lisez l’édition {'d’' if LAST_MONTH_DATE_STR.startswith('a') or LAST_MONTH_DATE_STR.startswith('o') else 'de '}{LAST_MONTH_DATE_STR} du suivi des sorties, un article dans lequel nous partageons les publications des jeux de données et des réutilisations qui ont retenus notre attention."
+        name = f'Suivi des sorties - {LAST_MONTH_DATE_STR}'
+
+        headers = {
+            'X-Api-Key': DATAGOUV_API_KEY
+        }
+
+        r = requests.post(f"{DATAGOUV_URL}/api/1/posts/", headers=headers, json={
+            'name': name,
+            'headline': headline,
+            'content': content,
+            'body_type': 'html',
+            'tags': ['suivi-des-sorties']
+        })
+        post_id = r.json()['id']
+        print(f'Article créé et éditable à {DATAGOUV_URL}/admin/post/{post_id}')
+
+        kwargs["ti"].xcom_push(key='admin_post_url', value=f'Article du {name} créé et éditable [dans l\'espace admin]({DATAGOUV_URL}/admin/post/{post_id})') 
+
+
+
+def publish_mattermost(ti):
+
+    published_threads=ti.xcom_pull(key='published_threads', task_ids='tweet_threads')
+    admin_post_url=ti.xcom_pull(key='admin_post_url', task_ids='create_edito_post')
+    
+    data = {
+        'text': ':mega: @agarrone @Thanh Ha Le \n - ' + admin_post_url + ' \n - ' + '\n - '.join(published_threads) 
+    }
+
+    r = requests.post(MATTERMOST_EDITO_URL, json = data)
+    print(data)
 
 
 with DAG(
@@ -59,15 +195,25 @@ with DAG(
     schedule_interval='0 8 1 * *',
     start_date=days_ago(31),
     dagrun_timeout=timedelta(minutes=60),
-    tags=['test'],
+    tags=['edito', 'mattermost', 'post', 'twitter'],
 ) as dag:
    
+    edito = PythonOperator(
+        task_id="create_edito_post",
+        python_callable=create_edito_post,
+    )
+
     tweet = PythonOperator(
-        task_id="test_task",
+        task_id="tweet_threads",
         python_callable=process_tweeting,
     )
 
-    tweet
+    mattermost = PythonOperator(
+        task_id = 'publish_mattermost',
+        python_callable=publish_mattermost
+    )
+
+    [tweet, edito] >> mattermost
 
 
 
