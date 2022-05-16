@@ -62,7 +62,7 @@ def tweet_featured_from_catalog(url, obj_type, phrase_intro):
                                  in_reply_to_status_id=reply_tweet.id, 
                                  auto_populate_reply_metadata=True)
 
-    return ':mega: :bird: @agarrone @thanh-ha.le - Thread sur les ' + obj_type + ' du mois dernier publié [ici](https://twitter.com/DatagouvBot/status/' + str(original_tweet.id) + ')'
+    return ':bird: Thread sur les ' + obj_type + ' du mois dernier publié [ici](https://twitter.com/DatagouvBot/status/' + str(original_tweet.id) + ')'
 
 
 def process_tweeting(**kwargs):
@@ -173,7 +173,7 @@ def create_edito_post(**kwargs):
         post_id = r.json()['id']
         print(f'Article créé et éditable à {DATAGOUV_URL}/admin/post/{post_id}')
 
-        kwargs["ti"].xcom_push(key='admin_post_url', value=f'Article du {name} créé et éditable [dans l\'espace admin]({DATAGOUV_URL}/admin/post/{post_id})') 
+        kwargs["ti"].xcom_push(key='admin_post_url', value=f':rolled_up_newspaper: Article du {name} créé et éditable [dans l\'espace admin]({DATAGOUV_URL}/admin/post/{post_id})') 
 
 
 
@@ -181,9 +181,10 @@ def publish_mattermost(ti):
 
     published_threads=ti.xcom_pull(key='published_threads', task_ids='tweet_threads')
     admin_post_url=ti.xcom_pull(key='admin_post_url', task_ids='create_edito_post')
-    
+    print(published_threads)
+    print(admin_post_url)
     data = {
-        'text': ':mega: @agarrone @Thanh Ha Le \n - ' + admin_post_url + ' \n - ' + '\n - '.join(published_threads) 
+        'text': ':mega: @agarrone @thanh-ha.le \n - ' + admin_post_url + ' \n - ' + '\n - '.join(published_threads) 
     }
 
     r = requests.post(MATTERMOST_EDITO_URL, json = data)
