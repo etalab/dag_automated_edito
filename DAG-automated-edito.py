@@ -178,8 +178,10 @@ def publish_mattermost(ti):
 
     published_threads=ti.xcom_pull(key='published_threads', task_ids='tweet_threads')
     admin_post_url=ti.xcom_pull(key='admin_post_url', task_ids='create_edito_post')
+    
     print(published_threads)
     print(admin_post_url)
+
     data = {
         'text': ':mega: @agarrone @thanh-ha.le \n - ' + admin_post_url + ' \n - ' + '\n - '.join(published_threads) 
     }
@@ -217,6 +219,3 @@ with DAG(
     )
 
     [tweet, edito] >> mattermost
-
-
-
