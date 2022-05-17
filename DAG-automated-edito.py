@@ -22,17 +22,14 @@ LAST_MONTH_DATE_STR_SHORT = f'{MONTHS[LAST_MONTH_DATE.month - 1]}'
 LAST_MONTH_DATE_STR = f'{MONTHS[LAST_MONTH_DATE.month - 1]} {LAST_MONTH_DATE.strftime("%Y")}'
 
 
-DATAGOUV_URL = Variable.get("dev_datagouv_url")
-DATAGOUV_API_KEY = Variable.get('dev_datagouv_api_key_secret')
-CREATE_POST_BY_API = Variable.get('create_post_by_api', False)
-
-
-CONSUMER_KEY = Variable.get('twitter_consumer_key')
-CONSUMER_KEY_SECRET = Variable.get('twitter_consumer_key_secret')
-ACCESS_TOKEN = Variable.get('twitter_access_token')
-ACCESS_SECRET_TOKEN = Variable.get('twitter_secret_token_secret')
-
-MATTERMOST_EDITO_URL = Variable.get('secret_mattermost_datagouv_edito')
+DATAGOUV_URL = Variable.get("DEV_DATAGOUV_URL")
+DATAGOUV_API_KEY = Variable.get('DEV_DATAGOUV_API_KEY_SECRET')
+CREATE_POST_BY_API = Variable.get('CREATE_POST_BY_API', False)
+CONSUMER_KEY = Variable.get('TWITTER_CONSUMER_KEY')
+CONSUMER_KEY_SECRET = Variable.get('TWITTER_CONSUMER_KEY_SECRET')
+ACCESS_TOKEN = Variable.get('TWITTER_ACCESS_TOKEN')
+ACCESS_SECRET_TOKEN = Variable.get('TWITTER_SECRET_TOKEN')
+MATTERMOST_EDITO_URL = Variable.get('SECRET_MATTERMOST_DATAGOUV_EDITO')
 
 
 def tweet_featured_from_catalog(url, obj_type, phrase_intro):
