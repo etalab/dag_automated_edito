@@ -187,6 +187,10 @@ def publish_mattermost(ti):
     r = requests.post(MATTERMOST_EDITO_URL, json = data)
     print(data)
 
+default_args = {
+   'email': ['geoffrey.aldebert@data.gouv.fr'],
+   'email_on_failure': True
+}
 
 with DAG(
     dag_id=DAG_NAME,
@@ -194,6 +198,7 @@ with DAG(
     start_date=days_ago(31),
     dagrun_timeout=timedelta(minutes=60),
     tags=['edito', 'mattermost', 'post', 'twitter'],
+    default_args=default_args,
 ) as dag:
    
     edito = PythonOperator(
