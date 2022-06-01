@@ -117,18 +117,18 @@ def create_edito_post(**kwargs):
     content = f"""
     <script data-udata="https://www.data.gouv.fr/" src="https://static.data.gouv.fr/static/oembed.js" async defer></script>
 
-    <p>En {LAST_MONTH_DATE_STR}, {new_datasets_count} jeux de données et {new_reuses_count} réutilisations ont été publiés sur data.gouv.fr.</p>
-    <a href="http://activites-datagouv.app.etalab.studio/"  target="_blank">Découvrez plus de statistiques sur la plateforme</a>.
-
+    <h3>En {LAST_MONTH_DATE_STR}, {new_datasets_count} jeux de données et {new_reuses_count} réutilisations ont été publiés sur data.gouv.fr.</h3>
+    <a href="http://activites-datagouv.app.etalab.studio/"  target="_blank">Découvrez plus de statistiques sur l'activité de la plateforme</a>.
+    <p>Retrouvez-ici nos jeux de données et réutilisations coups de coeur du mois, ainsi que les publications récentes les plus populaires en {LAST_MONTH_DATE_STR}.</p>
     <div class="fr-my-6w">
         <h3 >Les jeux de données du mois</h3>
-        <p>Les jeux de données qui ont retenus notre attention ce mois-ci :</p>
+        <p>Les jeux de données qui ont retenu notre attention ce mois-ci :</p>
         {list_datasets(featured_datasets_slug)}
     </div>
 
     <div class="fr-my-6w">
         <h3>Les réutilisations du mois</h3>
-        <p>Les réutilisations qui ont retenus notre attention ce mois-ci :</p>
+        <p>Les réutilisations qui ont retenu notre attention ce mois-ci :</p>
         {list_reuses(featured_reuses_slug)}
     </div>
 
@@ -136,16 +136,17 @@ def create_edito_post(**kwargs):
         <h3>Les tendances du mois sur data.gouv.fr</h3>
         <p>Les jeux de données publiés ce mois-ci les plus populaires :</p>
         {list_datasets(trending_datasets_slug)}
+        <p>Il s'agit des jeux de données et des réutilisations créés récemment les plus consultés au mois de {LAST_MONTH_DATE_STR}.</p>
         <p>Les réutilisations publiées ce mois-ci les plus populaires :</p>
         {list_reuses(trending_reuses_slug)}
     </div>
 
 
     <h3>Suivez l’actualité de la plateforme</h3>
-    <p>Le suivi des sorties n’est que le sommet de l’iceberg de l’activité de data.gouv.fr.
-    Pour ne rien manquer, de l’actualité de data.gouv.fr et de l’open data, 
-    <a href="https://infolettres.etalab.gouv.fr/subscribe/rn7y93le1"  target="_blank">inscrivez-vous à notre infolettre</a>. 
-    pour experimenter les nouveauté de la plateforme en avant première et nous aider à l’améliorer n’hésitez pas à
+    <p>Le suivi des sorties ne constitue que le sommet de l’iceberg de l’activité de data.gouv.fr.
+    Pour ne rien manquer de l’actualité de data.gouv.fr et de l’open data, 
+    <a href="https://infolettres.etalab.gouv.fr/subscribe/rn7y93le1"  target="_blank">abonnez-vous à notre infolettre</a>. 
+    <br />Et si vous souhaitez nous aider à améliorer la plateforme en testant les nouveautés en avant première, n’hésitez pas à
     <a href="https://app.evalandgo.com/s/index.php?id=JTk5biU5OWolOUQlQUI%3D&a=JTk3cCU5M2glOTklQUU%3D"  target="_blank">devenir beta testeur</a>.</p>
     """
 
