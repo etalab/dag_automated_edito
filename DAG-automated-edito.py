@@ -134,9 +134,9 @@ def create_edito_post(**kwargs):
 
     <div class="fr-my-6w">
         <h3>Les tendances du mois sur data.gouv.fr</h3>
+        <p><i>Il s'agit des jeux de données et des réutilisations créés récemment les plus consultés au mois {'d’' if LAST_MONTH_DATE_STR.startswith('a') or LAST_MONTH_DATE_STR.startswith('o') else 'de '}{LAST_MONTH_DATE_STR}.</i></p>
         <p>Les jeux de données publiés ce mois-ci les plus populaires :</p>
         {list_datasets(trending_datasets_slug)}
-        <p>Il s'agit des jeux de données et des réutilisations créés récemment les plus consultés au mois de {LAST_MONTH_DATE_STR}.</p>
         <p>Les réutilisations publiées ce mois-ci les plus populaires :</p>
         {list_reuses(trending_reuses_slug)}
     </div>
@@ -154,7 +154,7 @@ def create_edito_post(**kwargs):
 
     # Create a POST
     if CREATE_POST_BY_API:
-        headline = f"Vous lisez l’édition {'d’' if LAST_MONTH_DATE_STR.startswith('a') or LAST_MONTH_DATE_STR.startswith('o') else 'de '}{LAST_MONTH_DATE_STR} du suivi des sorties, un article dans lequel nous partageons les publications des jeux de données et des réutilisations qui ont retenus notre attention."
+        headline = f"Vous lisez l’édition {'d’' if LAST_MONTH_DATE_STR.startswith('a') or LAST_MONTH_DATE_STR.startswith('o') else 'de '}{LAST_MONTH_DATE_STR} du suivi des sorties, un article dans lequel nous partageons les publications de jeux de données et de réutilisations qui ont retenu notre attention."
         name = f'Suivi des sorties - {LAST_MONTH_DATE_STR}'
 
         headers = {
